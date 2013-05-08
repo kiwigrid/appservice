@@ -20,7 +20,7 @@
  * Take a look at the autoload.php in the "app" directory for including third party libs (like these) into symfony2
  * The Testclient first initializes a session with either a basic authentication via login/password or a given ssoToken
  * Both information are posted as json with SSL client certification and return json objects.
- *
+ * some change
  *
  * @author max.kruse
  *
