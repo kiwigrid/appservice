@@ -1,3 +1,25 @@
 {
-    "name": "appservice/Appservice"
+    "name": "kiwigrid/appservice",
+    "description": "Provides helper methods for access to the Kiwigrid REST API for PHP Symfony Apps.",
+    "type":"library",
+    "keywords": ["kiwigrid", "REST", "API", "cURL", "webservice"],
+    "homepage":"developers.kiwigrid.com",
+    "license":"MIT",
+    "authors": [
+        {
+            "name": "Sören Lubitz",
+            "email": "soeren.lubitz@kiwigrid.com",
+            "homepage": "https://github.com/soeren-lubitz",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "lib-curl": "*"
+    },
+    "autoload": {
+        "psr-0": {
+            "AppService": "src/"
+        }
+    }
 }
