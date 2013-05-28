@@ -66,7 +66,7 @@ class AppService {
 	private $options = array(
 			CURLOPT_HTTPHEADER => array('Content-type: application/json'),
 			CURLOPT_HEADER => 0,
-			CURLOPT_VERBOSE => 1,
+			CURLOPT_VERBOSE => 0,
 			CURLOPT_RETURNTRANSFER => 1,
 			CURLOPT_SSL_VERIFYPEER => 1,
 			CURLOPT_SSL_VERIFYHOST => 2,
@@ -101,14 +101,12 @@ class AppService {
 	 *
 	 * @throws RuntimeException								If curl is not loaded.
 	 */
-	public function __construct(iAppserviceSessionHandler $sessionHandler, $ssl_cert, $ssl_key, $ssl_pass, $ca_cert, $baseUrl, Request $request, SecurityContextInterface $securityContext) {
+	public function __construct(iAppserviceSessionHandler $sessionHandler, $ssl_cert, $ssl_key, $ssl_pass, $ca_cert, $baseUrl, Request $request) {
 
 		// check if CURL is enabled.
 		if (!function_exists('curl_init')) {
 			throw new \RuntimeException('Sorry cURL is not installed! Please refer to the php.ini to enable the cURL extension. ');
 		}
-
-		$this->securityContext = $securityContext;
 
 		$this->sessionHandler = $sessionHandler;
 
@@ -130,7 +128,7 @@ class AppService {
 			$this->initSessionWithToken($ssoToken);
 			$user = self::call('users/-/user', 'GET');
 			if ($user) {
-				$this->setUpUser ($user , $this->securityContext, $request);
+				$this->setUpUser ($user, $request);
 			}
 
 			if ($postTitleJS) {
@@ -141,7 +139,7 @@ class AppService {
 		}
 	}
 
-	public function setUpUser ( $user , $securityContext, $request ) {
+	public function setUpUser ($user, $request ) {
 
 		$channelname = $user['user']['channel'];
 		$language = $user['user']['language'];
@@ -166,24 +164,6 @@ class AppService {
 			$fullName = $firstName.' '.$lastName;
 		} else {
 			$fullName = $login;
-		}
-		// refer to security.yml for informations regarding credential roles
-		if (isset ($role)) {
-			switch ($role) {
-				case 'customer' :
-					$roleKey = 'ROLE_CUSTOMER';
-					break;
-				case 'technician' :
-					$roleKey = 'ROLE_TECHNICIAN';
-					break;
-				case 'admin':
-					$roleKey = 'ROLE_ADMIN';
-					break;
-				default :
-					$roleKey = 'ROLE_CUSTOMER';
-			}
-			$token = new UsernamePasswordToken($fullName , null , 'app', array($roleKey));
-			$securityContext->setToken($token);
 		}
 	}
 
