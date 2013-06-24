@@ -101,7 +101,7 @@ class AppService {
 	 *
 	 * @throws RuntimeException								If curl is not loaded.
 	 */
-	public function __construct(iAppserviceSessionHandler $sessionHandler, $ssl_cert, $ssl_key, $ssl_pass, $ca_cert, $baseUrl, Request $request) {
+	public function __construct(iAppserviceSessionHandler $sessionHandler, $ssl_cert, $ssl_key, $ssl_pass, $ca_cert, $baseUrl, $request = null) {
 
 		// check if CURL is enabled.
 		if (!function_exists('curl_init')) {
@@ -118,52 +118,28 @@ class AppService {
 				$this->baseURI .= '/';
 			}
 		}
-
-		$ssoToken = $request->get('ssoToken', null);
-
-		$postTitleJS = $request->get('postTitleJS', null);
-
+		
+		if ($request) {
+			$ssoToken = $request->get('ssoToken', null);
+			$postTitleJS = $request->get('postTitleJS', null);
+		} else {
+			$ssoToken = false;
+			$postTitleJS = false;
+		}
+		
 		if ($ssoToken) {
-
+		
 			$this->initSessionWithToken($ssoToken);
 			$user = self::call('users/-/user', 'GET');
 			if ($user) {
 				$this->setUpUser ($user, $request);
 			}
-
+		
 			if ($postTitleJS) {
 				$this->sessionHandler->set('postTitleJS', $postTitleJS);
 			}
 		} else {
 			$this->sId = $this->sessionHandler->retrieveSession();
-		}
-	}
-
-	public function setUpUser ($user, $request ) {
-
-		$channelname = $user['user']['channel'];
-		$language = $user['user']['language'];
-		$role = $user['user']['userType'];
-		$this->sessionHandler->set('channelname', $channelname);
-		$this->sessionHandler->set('language', $language);
-		$this->sessionHandler->set('_locale', $language);
-		$this->sessionHandler->set('role' , $role);
-		// remember the locallistener is executed before executing the appservice methods, so there could be locale property set from previous symfony 2.1 session when starting the app again
-		// imagine you start the app in german, the locale listener checks for session locale and write it to the request prop
-		// when restarting the app again with the e.g. locale englisch the locale listener is executed before the app service method, so it sets the locale to the previously saved locale
-		// so at the end the retrieved user language comes into late and the correct language is only set when the user restarts the app once again
-		// to avoid the locale listener to take the saved locale from previous app session just overwrite the locale when initializing the session here
-		if (isset($language)) {
-			$request->setLocale($language);
-		}
-
-		$login = isset($user['user']['login']) ? $user['user']['login'] : null;
-		$firstName = isset($user['user']['firstName']) ? $user['user']['firstName'] : null ;
-		$lastName = isset($user['user']['lastName']) ? $user['user']['lastName'] : null;
-		if (isset($firstName) && isset($lastName)) {
-			$fullName = $firstName.' '.$lastName;
-		} else {
-			$fullName = $login;
 		}
 	}
 
@@ -215,7 +191,7 @@ class AppService {
 	 *
 	 * @throws RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
 	 */
-	private function initSession($bodyObject) {
+	public function initSession($bodyObject) {
 
 		$this->sId = null;
 		$this->sessionHandler->storeSession($this->sId);
@@ -246,10 +222,11 @@ class AppService {
 	 * @return array				The response body
 	 * @throws \RuntimeException
 	 */
-	public function call($query, $method = 'GET', $queryParams = array(), $requestBody = array(), $options = array()) {
+	public function call($query, $method = 'GET', $queryParams = array(), $requestBody = array(), $options = array(), &$http_status = null, $decode = true) {
 
 		$queryParams = ($queryParams)?$queryParams:array();
 		$requestBody = ($requestBody)?$requestBody:array();
+		$requestBody = (is_array($requestBody))?json_encode($requestBody):$requestBody;
 		$sessionIdHeader = 'Session-Id: '.$this->sId;
 
 		if(!in_array($sessionIdHeader, $this->options[CURLOPT_HTTPHEADER])) {
@@ -296,23 +273,26 @@ class AppService {
 		}
 
 		$callOptions[CURLOPT_CUSTOMREQUEST] = $method;
-		$callOptions[CURLOPT_POSTFIELDS] = json_encode($requestBody);
+		$callOptions[CURLOPT_POSTFIELDS] = $requestBody;
 
 		// set up cURL session
 		curl_setopt_array($ch, $callOptions);
 		//execute cURL session
 		$result = curl_exec($ch);
+		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
 		//cURL Error Output - in this case every cURL errormessage are handled as this sample textmessage
 		if (curl_errno($ch)) {
-			$e = new \RuntimeException('Error calling: "'.$this->baseURI.$requestString."\" \nCurl Error " . curl_errno($ch) . ': ' . curl_error($ch));
+			$e = new \RuntimeException('Error calling: "'.$this->baseURI.$requestString
+					."\" \nCurl Error " . curl_errno($ch) . ': ' . curl_error($ch)
+					." \nHTTP Return Code: ".$http_status);
 			curl_close($ch);
 			throw $e;
 		} else {
 			// close cURL session debug messages
 			curl_close($ch);
 			// output result as json accociative array
-			$output = json_decode($result, true);
+			$output = ($decode)?json_decode($result, true):$result;
 
 			return $output;
 		}
