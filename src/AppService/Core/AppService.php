@@ -28,17 +28,6 @@
 
 namespace AppService\Core;
 
-use Monolog\Logger;
-
-use Symfony\Component\HttpFoundation\Session\Session;
-
-use Symfony\Component\Security\Core\SecurityContextInterface;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-
-use JMS\SecurityExtraBundle\Security\Authorization\AfterInvocation\AclAfterInvocationProvider;
-
 /**
  * This class provides basic functionalities for making REST calls to the Kiwigrid WebAPI. In Symfony2 this class will be
  * instanciated as a service as configured in the global config.yml. The the locations for the needed certificates, its
@@ -50,7 +39,6 @@ use JMS\SecurityExtraBundle\Security\Authorization\AfterInvocation\AclAfterInvoc
  * @author soeren.lubitz
  *
  */
-use Symfony\Component\HttpFoundation\Request;
 
 class AppService {
 
@@ -131,9 +119,6 @@ class AppService {
 		
 			$this->initSessionWithToken($ssoToken);
 			$user = self::call('users/-/user', 'GET');
-			if ($user) {
-				$this->setUpUser ($user, $request);
-			}
 		
 			if ($postTitleJS) {
 				$this->sessionHandler->set('postTitleJS', $postTitleJS);
@@ -149,6 +134,7 @@ class AppService {
 	 * @param string $login
 	 *
 	 * @return string sessionId
+	 * @throws \RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
 	 */
 
 	public function initBackendSessionWithLogin ($login) {
@@ -166,7 +152,7 @@ class AppService {
 	 * @param string $password
 	 *
 	 * @return string sessionId
-	 * @throws RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
+	 * @throws \RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
 	 */
 	public function initSessionWithCredentials($login, $password) {
 		return $this->initSession(array('login' => $login, 'password' => $password));
@@ -189,7 +175,7 @@ class AppService {
 	 *
 	 * @param array $bodyObjects		An array of request bodyobjects from form input must be given either as login/password combination xor ssoToken
 	 *
-	 * @throws RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
+	 * @throws \RuntimeException			If the session cannot be initialized, the given files cannot be read, the request fails or the answer cannot be parsed.
 	 */
 	public function initSession($bodyObject) {
 
@@ -218,6 +204,8 @@ class AppService {
 	 * @param array $queryParams	a key->value array for parameters that should be included in the url
 	 * @param array $requestBody	an array structure the represents the request body. Will be converted to json.
 	 * @param array $options		a key->value array for additional curl options
+	 * @param int $http_status		(optional) a return parameter to retrieve the http status code
+	 * @param boolean $decode		(optional) if true the returned string will be decoded to an array (default: true)
 	 *
 	 * @return array				The response body
 	 * @throws \RuntimeException
