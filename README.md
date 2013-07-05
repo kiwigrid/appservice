@@ -8,38 +8,37 @@ The REST API Dokumentation can be found under <http://developers.kiwigrid.com/we
 
 ## Symfony Integration
 
+In the local parameter.yml the following must be added:
+
+```
+parameters:
+  app_service.ssl_certs_path:  "%kernel.root_dir%/../certs"               #the path to the folder that contain the cert and key file
+  app_service.ssl_cert_file:   "kiwigrid.myapp.crt"                       #the filename of the cert file (pem format)
+  app_service.ssl_key_file:    "kiwigrid.myapp.key"                       #the filename of the key file (pem format)
+  app_service.ca_cert_file:    "ca.crt"                                   #the filename of the ca cert file (pem format)
+  app_service.base_url:        "https://webapi.dev.kiwigrid.com/"
+  app_service.ssl_password:    "ChangeToActualKeyPassword"
+```
+
 In the global config.yml the following must be added:
 
-    # local dev config
-    parameters:
-        app_service.ssl_certs_path:  "%kernel.root_dir%/../certs" #the path to the folder that contain the cert and key file
-        app_service.ssl_cert_file:   "cert_%kernel.environment%.pem"                   #the filename of the cert file (pem format)
-        app_service.ssl_key_file:    "key_%kernel.environment%.pem"                    #the filename of the key file (pem format)
-        app_service.ca_cert_file:    "root.kiwigrid.com.pem"                    #the filename of the ca cert file (pem format)
-        app_service.base_url:        "https://webapi.dev.kiwigrid.com/"
-        
-        
-    services:
-        session:
-            class:          AppService\Core\SymfonyAppserviceSessionHandler
-              
-        app_service:
-            class:          AppService\Core\AppService
-            scope:          request
-            arguments:
-              - @session
-              - "%app_service.ssl_certs_path%/%app_service.ssl_cert_file%"
-              - "%app_service.ssl_certs_path%/%app_service.ssl_key_file%"
-              - "%app_service.ssl_password%"
-              - "%app_service.ssl_certs_path%/%app_service.ca_cert_file%"
-              - "%app_service.base_url%"
-              - @request  
-
-In the environment specific configs the following must be added:
-
-    parameters:
-        app_service.base_url:        "https://webapi.kiwigrid.com/" #enviroment specific API URL
-        app_service.ssl_password:    "mySSLKeyPassword"
+```
+services:
+  session:
+    class:          AppService\Core\SymfonyAppserviceSessionHandler
+      
+  app_service:
+    class:          AppService\Core\AppService
+    scope:          request
+    arguments:
+      - @session
+      - "%app_service.ssl_certs_path%/%app_service.ssl_cert_file%"
+      - "%app_service.ssl_certs_path%/%app_service.ssl_key_file%"
+      - "%app_service.ssl_password%"
+      - "%app_service.ssl_certs_path%/%app_service.ca_cert_file%"
+      - "%app_service.base_url%"
+      - @request  
+```
         
 ## Requirements
 
